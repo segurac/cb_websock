@@ -10,9 +10,9 @@ set(requiredlibs ${requiredlibs} ${CMAKE_THREAD_LIBS_INIT})
 find_package(rapidjson REQUIRED)
 include_directories(${RAPIDJSON_INCLUDE_DIRS})
 
-find_package(Casablanca REQUIRED)
-include_directories(${CASABLANCA_INCLUDE_DIR})
-set(requiredlibs ${requiredlibs} ${CASABLANCA_LIBRARIES})
+#find_package(cpprest REQUIRED)
+#include_directories(${CPPREST_INCLUDE_DIR})
+#set(requiredlibs ${requiredlibs} ${CPPREST_LIBRARIES})
 
 include_directories(include)
 file(GLOB SOURCES "src/*.cpp")
