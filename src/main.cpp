@@ -11,13 +11,10 @@ int main(int argc, const char *argv[])
   std::string uri = "wss://ws-feed.pro.coinbase.com";
   Websock sock(channels, product_id, uri);
   sock.Connect();
-//   std::cout << "connected" << std::endl;
-  std::this_thread::sleep_for(std::chrono::seconds(30));
-//   std::cout << "Buy: " << sock.Best_Buy_Price() << std::endl;
-//   std::this_thread::sleep_for(std::chrono::seconds(3));
-//   std::cout << "Sell: " << sock.Best_Sell_Price() << std::endl;
-  std::this_thread::sleep_for(std::chrono::seconds(3));
-//   std::cout << "MidMarket: " << sock.MidMarket_Price() << std::endl;
+  while(true)
+  {
+    std::this_thread::sleep_for(std::chrono::seconds(600));
+  }
   sock.Disconnect();
   return 0;
 }
