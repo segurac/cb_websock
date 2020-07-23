@@ -21,10 +21,12 @@ private:
   std::string Product_id;
   std::string Uri;
   bool is_connected;
+  std::atomic<unsigned long long> counter;
 public:
   double Best_Buy_Price();
   double Best_Sell_Price();
   double MidMarket_Price();
+  unsigned long long getCount();
 
   void Connect();
   void Disconnect();

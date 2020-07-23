@@ -12,7 +12,7 @@ void Websock::message_handler(web::websockets::client::websocket_incoming_messag
   
   std::string input = msg.extract_string().get();
   std::cout << input << std::endl;
-  
+  counter++;
 //   Document d;
 //   d.Parse(input.c_str());
 //   std::string type = d["type"].GetString();
@@ -111,6 +111,11 @@ double Websock::MidMarket_Price()
   return (Best_Buy_Price() + Best_Sell_Price()) / 2;
 }
 
+unsigned long long Websock::getCount()
+{
+  return counter;
+}
+
 void Websock::Connect()
 {
   client.set_message_handler([this](web::websockets::client::websocket_incoming_message msg){message_handler(msg);});
@@ -131,7 +136,13 @@ void Websock::Disconnect()
 }
 
 Websock::Websock(std::vector<std::string> channels, std::string product_id, std::string uri)
-{ Channels = channels; Product_id = product_id; Uri = uri; }
+{ 
+    Channels = channels; 
+    Product_id = product_id; 
+    Uri = uri; 
+    counter = 0;
+}
+
 Websock::~Websock()
 {
   if (is_connected)
