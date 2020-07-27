@@ -7,7 +7,7 @@ capture_multilog () {
     do
         echo "(Re)Starting capture $1"
 #         ./cb_websock $product |  multilog s104857600 n1000 '!/bin/gzip'  ./events_$product 
-        ./cb_websock $product |  python preprocess_stdin.py coinbaseDump $product 
+        ./cb_websock $product |  python ../scripts/preprocess_stdin.py coinbaseDump $product 
         sleep 0.5
     done 
 }
