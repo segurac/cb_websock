@@ -15,7 +15,7 @@ import io
 from subprocess import Popen, PIPE
 #last_day=None
 #last_seq=None
-
+from enum import Enum 
 
 class EventsToDiskSaver():
     def __init__(self, destination_path , product_id):
@@ -26,9 +26,13 @@ class EventsToDiskSaver():
         self.file_path = None
         self.out_file = None
         self.out_buffer = None
+        self.save_orderbook = None
+        self.last_ddate = None
+        self.Modes =  Enum('Modes', 'FAST SAFE')
+        self.mode = self.Modes.FAST
         
     
-    def get_path(self, ddate):
+    def get_path(self, ddate, prefix="events_"):
         dir_path = self.destination_path + "/" + str(ddate.year) + "/" + str(ddate.month) + "/" + str(ddate.day)
         dir_path = pathlib.Path(dir_path)
         if not dir_path.exists():
@@ -39,11 +43,11 @@ class EventsToDiskSaver():
                 print("Error creating destination path")
         
         filecount = 0
-        file_path = str(dir_path) + "/" + "events_" + self.product_id + "_" + str(filecount) + ".json.gz"
+        file_path = str(dir_path) + "/" + prefix + self.product_id + "_" + str(filecount) + ".json.gz"
         file_path = pathlib.Path(file_path)
         while( file_path.exists() ):
             filecount += 1
-            file_path = str(dir_path) + "/" + "events_" + self.product_id + "_" + str(filecount) + ".json.gz"
+            file_path = str(dir_path) + "/" + prefix + self.product_id + "_" + str(filecount) + ".json.gz"
             file_path = pathlib.Path(file_path)
             
         return file_path
@@ -51,18 +55,21 @@ class EventsToDiskSaver():
     def close(self):
         if self.out_file is not None:
             #self.out_buffer.flush()
-            self.out_buffer.stdin.close()
-            self.out_buffer.wait()
+            if self.mode == self.Modes.FAST:
+                self.out_buffer.stdin.close()
+                self.out_buffer.wait()
             self.out_file.close()
             self.out_file = None
         
         
     def store(self, msg, line):
-         if 'product_id' in msg:
+        save_orderbook = False
+        if 'product_id' in msg:
 
             #now = dateutil.parser.parse(datetime.now().isoformat()+'Z')
             #msg['time'] = dateutil.parser.parse(msg['time'])
             ddate = ciso8601.parse_datetime(msg['time'])
+            self.last_ddate = ddate
             sequence = msg['sequence']
             if self.sequence is None:
                 self.sequence = sequence-1
@@ -84,12 +91,17 @@ class EventsToDiskSaver():
                 
             self.last_day = ddate.day
             
+            if self.file_path is None:
+                self.save_orderbook = self.get_path( ddate, prefix="orderbook_")
+                save_orderbook = True
+                
             
             if self.file_path is None or self.out_file is None:
                 if self.out_file is not None:
                     #self.out_buffer.flush()
-                    self.out_buffer.stdin.close()
-                    self.out_buffer.wait()
+                    if self.mode == self.Modes.FAST:
+                        self.out_buffer.stdin.close()
+                        self.out_buffer.wait()
                     self.out_file.close()
                     self.out_file = None
                     
@@ -97,65 +109,75 @@ class EventsToDiskSaver():
                 print("Opening", str(self.file_path))
                 #self.out_file = gzip.open( str(self.file_path), "wb")
                 #self.out_buffer = io.BufferedWriter(self.out_file, buffer_size=100000000)
-                self.out_file = open( str(self.file_path), "wb")
-                p = Popen('gzip', stdin=PIPE, stdout=self.out_file)
-                self.out_buffer=p
+                if self.mode == self.Modes.FAST:
+                    self.out_file = open( str(self.file_path), "wb")
+                    p = Popen('gzip', stdin=PIPE, stdout=self.out_file)
+                    self.out_buffer=p
+                if self.mode == self.Modes.SAFE:
+                    self.out_file = gzip.open( str(self.file_path), "wb")
 
             
-            #self.out_file.write( str.encode(line))
-            self.out_buffer.stdin.write( str.encode(line))
-
-
-
-where_to_save=sys.argv[1]
-produt_id= sys.argv[2]
-
-eventSaver = EventsToDiskSaver(where_to_save, produt_id)
-count=1
-salir=10
-for line in sys.stdin:
-    #print(line)
-    try:
-        msg = json.loads(line)
-        #print(msg)
-    except:
-        print("Error processing", line)
-        continue
-    if msg['type'] == 'heartbeat':
-        #print("Skipping heartbeat")
-        continue
-    
-    eventSaver.store(msg, line)
-    
-    ##if 'product_id' in msg:
-
-        ###now = dateutil.parser.parse(datetime.now().isoformat()+'Z')
-        ###msg['time'] = dateutil.parser.parse(msg['time'])
-        ##ddate = ciso8601.parse_datetime(msg['time'])
-        ##seq = msg['sequence']
-        ##if last_seq is None:
-            ##last_seq = seq-1
-        
-        ##if seq <= last_seq:
-            ##print("out of order sequence", seq, "last_seq", last_seq)
-        
-        ##if seq != last_seq +1:
-            ##print("Missing data", seq, "last_seq", last_seq)
-        
-        ##last_seq = seq
-        ###if msg['time'].minute == 40 and msg['time'].second == 0:
-            ###print(msg['time'])
-        ##if last_day is None or ddate.day != last_day :
-            ##path=
-            ###Mirar si existe la ruta
             
-            
-    count = (count + 1)%100000
-    if count == 0:
-        print("Checkpoint", msg['product_id'], msg['time'])
-        #salir-=1
-        #if salir <= 0:
-            #break
+            if self.mode == self.Modes.FAST:
+                self.out_buffer.stdin.write( str.encode(line))
+            elif self.mode == self.Modes.SAFE:
+                self.out_file.write( str.encode(line))
 
-eventSaver.close()
+        return save_orderbook
+
+
+if __name__ == "__main__":
+
+    where_to_save=sys.argv[1]
+    produt_id= sys.argv[2]
+
+    eventSaver = EventsToDiskSaver(where_to_save, produt_id)
+    eventSaver.mode = eventSaver.Modes.FAST
+    count=1
+    salir=10
+    for line in sys.stdin:
+        #print(line)
+        try:
+            msg = json.loads(line)
+            #print(msg)
+        except:
+            print("Error processing", line)
+            continue
+        if msg['type'] == 'heartbeat':
+            #print("Skipping heartbeat")
+            continue
+        
+        eventSaver.store(msg, line)
+        
+        ##if 'product_id' in msg:
+
+            ###now = dateutil.parser.parse(datetime.now().isoformat()+'Z')
+            ###msg['time'] = dateutil.parser.parse(msg['time'])
+            ##ddate = ciso8601.parse_datetime(msg['time'])
+            ##seq = msg['sequence']
+            ##if last_seq is None:
+                ##last_seq = seq-1
+            
+            ##if seq <= last_seq:
+                ##print("out of order sequence", seq, "last_seq", last_seq)
+            
+            ##if seq != last_seq +1:
+                ##print("Missing data", seq, "last_seq", last_seq)
+            
+            ##last_seq = seq
+            ###if msg['time'].minute == 40 and msg['time'].second == 0:
+                ###print(msg['time'])
+            ##if last_day is None or ddate.day != last_day :
+                ##path=
+                ###Mirar si existe la ruta
+                
+                
+        count = (count + 1)%100000
+        if count == 0:
+            print("Checkpoint", msg['product_id'], msg['time'])
+            #salir-=1
+            #if salir <= 0:
+                #break
+
+    eventSaver.close()
 
