@@ -17,6 +17,7 @@ for product in $(cat products.txt)
 do
 	echo $product
     capture_multilog $product &
+    sleep 0.5
 done
 
 
