@@ -2,13 +2,14 @@
 
 ## Compilation
 
+```console
 sudo apt-get install rapidjson-dev libcpprest-dev
 
 mkdir build
 cd build
 cmake ../
 make
-
+```
 ## environment
 
 I prefer using a pypy environment, which for this application is faster than normal python
@@ -21,10 +22,11 @@ pip install mujson
 ```
 ## run
 
+```console
 cd build/
 cp ../scripts/products.txt
 ../scripts/launch_db_websocks_to_disk.sh
-
+```
 ## Data Format
 
 The script connects to coinbase's websocket event feed for every product defined in product.txt. Raw data is stored as gziped json in the file ./coinbaseDump/yyyy/mm/dd/events_PRODUCT_NAME_0.json.gz
