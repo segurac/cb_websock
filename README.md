@@ -9,6 +9,14 @@ cd build
 cmake ../
 make
 
+## environment
+
+I prefer using a pypy environment, which for this application is faster than normal python
+sudo apt-get install pypy3-dev pypy3 python3-virtualenv virtualenv
+virtualenv -p pypy3 venv_pypy
+source venv_pypy/bin/activate
+pip install mujson
+
 ## run
 
 cd build/
